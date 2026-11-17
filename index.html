@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de integración múltiple</title>
+
+<script src="vendor/math.js"></script>
+<script src="vendor/plotly.min.js"></script>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+    svg: { fontCache: 'global' }, options: { enableMenu: false }
+  };
+</script>
+<script src="vendor/mathjax/tex-svg.js"></script>
+
+<style>
+  :root {
+    --azul: #003366; --amarillo: #ffcc00; --acento: #00b3a4;
+    --naranja: #e8630a; --rojo: #d62728; --verde: #1b6b3a;
+    --fondo: #f4f6f9; --tarjeta: #ffffff; --texto: #1f2937;
+    --suave: #6b7280; --borde: #d9dee7; --error: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--fondo); color: var(--texto); line-height: 1.55; }
+  header.barra {
+    background: linear-gradient(135deg, var(--azul) 0%, #0a5588 100%);
+    color: #fff; padding: 1.2rem 1.5rem 1rem; border-bottom: 5px solid var(--amarillo);
+  }
+  header.barra h1 { font-size: 1.35rem; font-weight: 600; }
+  header.barra p { font-size: .86rem; opacity: .9; margin-top: .2rem; }
+  main { max-width: 1120px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+
+  .aviso {
+    background: #fff8e1; border-left: 4px solid var(--amarillo);
+    padding: .8rem 1rem; border-radius: 4px; margin-bottom: 1.1rem; font-size: .9rem;
+  }
+  .modulo {
+    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
+    margin-bottom: 1.2rem; overflow: hidden;
+  }
+  .modulo > h2 {
+    background: var(--azul); color: #fff; font-size: 1rem; font-weight: 600;
+    padding: .7rem 1rem; display: flex; align-items: center; gap: .6rem;
+  }
+  .modulo > h2 .num {
+    background: var(--amarillo); color: var(--azul); width: 1.7rem; height: 1.7rem;
+    border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .85rem; flex: none;
+  }
+  .modulo > h2 small { margin-left: auto; font-weight: 400; opacity: .85; font-size: .78rem; }
+  .cuerpo { padding: 1rem; }
+  .intro { font-size: .9rem; color: var(--suave); margin-bottom: .9rem; }
+
+  .rejilla { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  label { display: block; font-size: .83rem; font-weight: 600; margin-bottom: .25rem; }
+  label .pista { font-weight: 400; color: var(--suave); }
+  input[type=text], select {
+    width: 100%; padding: .5rem .6rem; border: 1px solid var(--borde); border-radius: 5px;
+    font-size: .92rem; font-family: "Consolas", "Courier New", monospace; background: #fff; color: var(--texto);
+  }
+  select { font-family: inherit; }
+  input[type=text]:focus, select:focus { outline: 2px solid var(--acento); outline-offset: -1px; }
+
+  button {
+    background: var(--azul); color: #fff; border: 0; border-radius: 5px;
+    padding: .55rem 1.1rem; font-size: .9rem; font-weight: 600; cursor: pointer; margin-top: .9rem;
+  }
+  button:hover { background: #0a5588; }
+  button.sec { background: #fff; color: var(--azul); border: 1px solid var(--azul); }
+  button.sec:hover { background: #eef3f8; }
+
+  .msg { margin-top: .9rem; padding: .7rem .9rem; border-radius: 5px; font-size: .89rem; display: none; }
+  .msg.ok   { display: block; background: #e8f6ee; border-left: 4px solid var(--verde); }
+  .msg.mal  { display: block; background: #fdeceb; border-left: 4px solid var(--error); }
+  .msg.info { display: block; background: #eaf3fb; border-left: 4px solid var(--azul); }
+  .msg ul { margin: .4rem 0 0 1.1rem; }
+  .msg li { margin: .18rem 0; }
+
+  .panel { margin-top: 1rem; display: none; }
+  .panel.visible { display: block; }
+  .grafico { width: 100%; height: 420px; border: 1px solid var(--borde); border-radius: 6px; background: #fff; }
+  .dos { display: grid; gap: .8rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 820px) { .dos { grid-template-columns: 1fr; } }
+
+  .ficha { border: 1px solid var(--borde); border-radius: 6px; padding: .8rem; background: #fbfcfe; }
+  .ficha h3 { font-size: .85rem; color: var(--azul); margin-bottom: .45rem; text-transform: uppercase; letter-spacing: .03em; }
+  .ficha .dato { font-size: .9rem; margin: .3rem 0; }
+  .ficha .dato b { color: var(--azul); }
+
+  details.ayuda {
+    margin-top: 1rem; border: 1px dashed var(--borde); border-radius: 6px; background: #fbfcfe;
+  }
+  details.ayuda summary {
+    cursor: pointer; padding: .6rem .9rem; font-size: .87rem; font-weight: 600; color: var(--azul);
+  }
+  details.ayuda .adentro { padding: 0 .9rem .9rem; font-size: .88rem; }
+  details.ayuda table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: .85rem; }
+  details.ayuda th, details.ayuda td { border: 1px solid var(--borde); padding: .35rem .5rem; text-align: left; }
+  details.ayuda th { background: #eef3f8; color: var(--azul); }
+  code { background: #eef1f6; padding: .1rem .3rem; border-radius: 3px; font-size: .88em; }
+
+  .barraherr { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.1rem; }
+  .barraherr button { margin-top: 0; }
+  .estado { font-size: .8rem; color: var(--suave); margin-left: auto; }
+  footer { text-align: center; font-size: .78rem; color: var(--suave); padding: 1.5rem 1rem 0; }
+</style>
+</head>
+<body>
+
+<header class="barra">
+  <h1>Simulador de integración múltiple</h1>
+  <p>Fase 3 · Cálculo Multivariado (203057) · Universidad Nacional Abierta y a Distancia</p>
+</header>
+
+<main>
+
+<div class="aviso">
+  Este simulador <b>no resuelve la integral por usted</b>. Usted escribe la función, la región, el
+  sistema de coordenadas y los límites; el simulador representa la región, le muestra la
+  transformación y el jacobiano, y le dice si lo que escribió es coherente. El cálculo de la
+  actividad 3 lo hace usted a mano: aquí solo comprueba si su resultado es correcto.
+</div>
+
+<div class="barraherr">
+  <button class="sec" id="bGuardar">Guardar avance</button>
+  <button class="sec" id="bCodigo">Código de traslado</button>
+  <button class="sec" id="bCargar">Cargar desde código</button>
+  <button class="sec" id="bLimpiar">Borrar todo</button>
+  <span class="estado" id="estado"></span>
+</div>
+
+<!-- ───────────────────────── MÓDULO 1 ───────────────────────── -->
+<section class="modulo" id="mod1">
+  <h2><span class="num">1</span> Región de integración <small>Actividad 1 · ítems I y II</small></h2>
+  <div class="cuerpo">
+    <p class="intro">
+      Tome del Apéndice 3 la función y la región de su problema y escríbalas abajo. El simulador
+      dibuja la región en coordenadas cartesianas para que usted la describa y decida qué sistema
+      de coordenadas conviene.
+    </p>
+
+    <div class="rejilla">
+      <div>
+        <label for="tipo">Tipo de integral</label>
+        <select id="tipo">
+          <option value="doble">Integral doble (x, y)</option>
+          <option value="triple">Integral triple (x, y, z)</option>
+        </select>
+      </div>
+      <div>
+        <label for="funcion">Función a integrar <span class="pista">f</span></label>
+        <input type="text" id="funcion" placeholder="25 - x^2 - y^2">
+      </div>
+      <div style="grid-column: 1 / -1">
+        <label for="region">Región en coordenadas cartesianas
+          <span class="pista">— desigualdades separadas por coma</span></label>
+        <input type="text" id="region" placeholder="x^2 + y^2 &lt;= 25">
+      </div>
+    </div>
+
+    <button id="b1">Representar la región</button>
+    <div class="msg" id="m1"></div>
+
+    <div class="panel" id="p1">
+      <div class="dos">
+        <div class="grafico" id="g1"></div>
+        <div class="ficha" id="f1"></div>
+      </div>
+
+      <div class="rejilla" style="margin-top:.9rem">
+        <div>
+          <label for="sugerido">Según la geometría, el sistema que conviene es
+            <span class="pista">— su respuesta del ítem II</span></label>
+          <select id="sugerido">
+            <option value="">Elija…</option>
+            <option value="cartesianas">Cartesianas</option>
+            <option value="polares">Polares</option>
+            <option value="cilindricas">Cilíndricas</option>
+            <option value="esfericas">Esféricas</option>
+          </select>
+        </div>
+      </div>
+      <button id="b1b">Contrastar mi lectura de la geometría</button>
+      <div class="msg" id="m1b"></div>
+    </div>
+
+    <details class="ayuda">
+      <summary>¿No sabe qué escribir? Vea un ejemplo resuelto</summary>
+      <div class="adentro">
+        <p>Problema de práctica, que <b>no es ninguno de los cinco del Apéndice 3</b>: la intensidad
+          de una señal se modela con \(f(x,y)=9-x^{2}-y^{2}\) sobre el disco \(x^{2}+y^{2}\le 9\).</p>
+        <table>
+          <tr><th>Casilla</th><th>Qué se escribe</th></tr>
+          <tr><td>Tipo de integral</td><td>Integral doble (x, y)</td></tr>
+          <tr><td>Función</td><td><code>9 - x^2 - y^2</code></td></tr>
+          <tr><td>Región</td><td><code>x^2 + y^2 &lt;= 9</code></td></tr>
+          <tr><td>Sistema que conviene</td><td>Polares — la región es un disco centrado en el origen</td></tr>
+        </table>
+        <p style="margin-top:.6rem"><b>Cómo se escriben las expresiones:</b> la potencia con
+          <code>^</code>, la raíz con <code>sqrt(9-x^2)</code>, el producto con <code>*</code>
+          (<code>2*x</code>, no <code>2x</code>), y \(\pi\) como <code>pi</code>. Las desigualdades
+          admiten <code>&lt;=</code> y <code>&gt;=</code>, separadas por coma cuando son varias:
+          <code>x^2+y^2 &lt;= 4, 0 &lt;= z, z &lt;= 3</code>.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ───────────────────────── MÓDULO 2 ───────────────────────── -->
+<section class="modulo" id="mod2">
+  <h2><span class="num">2</span> Cambio de coordenadas y límites <small>Actividad 2 · ítems I, II y III</small></h2>
+  <div class="cuerpo">
+    <p class="intro">
+      Elija el sistema de coordenadas y escriba los límites de integración en ese sistema. El
+      simulador le muestra la transformación y el jacobiano, arma la integral planteada —sin
+      resolverla— y comprueba que sus límites describan exactamente la misma región del módulo 1.
+    </p>
+
+    <div class="rejilla">
+      <div>
+        <label for="sistema">Sistema de coordenadas</label>
+        <select id="sistema">
+          <option value="">Elija…</option>
+          <option value="cartesianas">Cartesianas</option>
+          <option value="polares">Polares (integral doble)</option>
+          <option value="cilindricas">Cilíndricas (integral triple)</option>
+          <option value="esfericas">Esféricas (integral triple)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="limites" style="margin-top:.9rem"></div>
+
+    <button id="b2">Comprobar los límites</button>
+    <div class="msg" id="m2"></div>
+
+    <div class="panel" id="p2">
+      <div class="ficha" id="f2"></div>
+    </div>
+
+    <details class="ayuda">
+      <summary>¿No sabe qué escribir? Vea el ejemplo en coordenadas polares</summary>
+      <div class="adentro">
+        <p>Para el mismo problema de práctica —\(f(x,y)=9-x^{2}-y^{2}\) sobre \(x^{2}+y^{2}\le 9\)—
+          se elige <b>Polares</b> y se escribe:</p>
+        <table>
+          <tr><th>Variable</th><th>Desde</th><th>Hasta</th></tr>
+          <tr><td>\(\theta\) (exterior)</td><td><code>0</code></td><td><code>2*pi</code></td></tr>
+          <tr><td>\(r\) (interior)</td><td><code>0</code></td><td><code>3</code></td></tr>
+        </table>
+        <p style="margin-top:.6rem">El simulador responde con la transformación
+          \(x=r\cos\theta,\ y=r\sin\theta\), el jacobiano \(r\) y la integral planteada
+          \(\displaystyle\int_{0}^{2\pi}\!\!\int_{0}^{3}(9-r^{2})\,r\,dr\,d\theta\), que es lo que
+          usted debe copiar en el ítem III <b>sin resolverla</b>.</p>
+        <p style="margin-top:.6rem">El límite interior puede depender del exterior. Si la región
+          fuera el triángulo \(0\le x\le 2,\ 0\le y\le x\), en cartesianas se escribiría
+          \(x\) de <code>0</code> a <code>2</code> y \(y\) de <code>0</code> a <code>x</code>.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ───────────────────────── MÓDULO 3 ───────────────────────── -->
+<section class="modulo" id="mod3">
+  <h2><span class="num">3</span> Comprobación del resultado <small>Actividad 3 · ítems I y III</small></h2>
+  <div class="cuerpo">
+    <p class="intro">
+      Resuelva la integral a mano, dejando visible cada integración parcial, y calcule también el
+      volumen de la región y el valor medio. Escriba aquí sus tres resultados: el simulador le dice
+      cuáles están bien, <b>sin mostrarle los valores correctos</b>.
+    </p>
+
+    <div class="rejilla">
+      <div>
+        <label for="vInt">Valor de la integral</label>
+        <input type="text" id="vInt" placeholder="127.23">
+      </div>
+      <div>
+        <label for="vVol">Volumen de la región <span class="pista">(área, si es doble)</span></label>
+        <input type="text" id="vVol" placeholder="28.27">
+      </div>
+      <div>
+        <label for="vMed">Valor medio de la magnitud</label>
+        <input type="text" id="vMed" placeholder="4.5">
+      </div>
+    </div>
+
+    <button id="b3">Comprobar mis resultados</button>
+    <div class="msg" id="m3"></div>
+
+    <details class="ayuda">
+      <summary>¿Cómo se calculan el volumen y el valor medio?</summary>
+      <div class="adentro">
+        <p>El <b>volumen de la región</b> es la misma integral con la función reemplazada por 1:
+          \(V=\iiint_{R} dV\). En una integral doble el análogo es el <b>área</b> de la región,
+          \(A=\iint_{R} dA\).</p>
+        <p style="margin-top:.5rem">El <b>valor medio</b> de la magnitud sobre la región es el
+          cociente \(\bar f=\dfrac{1}{V}\iiint_{R} f\,dV\). En el problema de práctica:
+          integral \(=\tfrac{81\pi}{2}\approx 127{,}23\), área \(=9\pi\approx 28{,}27\),
+          valor medio \(=4{,}5\).</p>
+        <p style="margin-top:.5rem">Escriba sus valores con los decimales que realmente obtuvo. El
+          simulador acepta únicamente la precisión que usted declara: si escribe <code>127</code>
+          exige que el valor esté entre 126,5 y 127,5, y si escribe <code>127.23</code> exige dos
+          decimales correctos.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ───────────────────────── MÓDULO 4 ───────────────────────── -->
+<section class="modulo" id="mod4">
+  <h2><span class="num">4</span> Contraste antes y después <small>Actividad 4</small></h2>
+  <div class="cuerpo">
+    <p class="intro">
+      Compare la región original en cartesianas con la caja de límites en el sistema que eligió. La
+      captura de esta vista es la que sustenta la validación visual de la actividad 4.
+    </p>
+    <button id="b4">Generar el contraste</button>
+    <div class="msg" id="m4"></div>
+    <div class="panel" id="p4">
+      <div class="dos">
+        <div class="grafico" id="g4a"></div>
+        <div class="grafico" id="g4b"></div>
+      </div>
+      <div class="ficha" id="f4" style="margin-top:.8rem"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Universidad Nacional Abierta y a Distancia · Escuela de Ciencias Básicas, Tecnología e Ingeniería<br>
+  Cálculo Multivariado (203057) — Fase 3
+</footer>
+</main>
+
+<script>
+'use strict';
+
+/* ══════════════════ estado ══════════════════ */
+const T = {
+  tipo: 'doble', fStr: '', f: null,
+  regStr: '', reg: [], caja: null, vol: null, integral: null,
+  sistema: '', lim: null, verificado: false
+};
+
+const SISTEMAS = {
+  cartesianas: {
+    doble:  { vars: ['x', 'y'], trans: 'x=x,\\; y=y', jac: '1', jacF: () => 1,
+              aCart: (u, v) => [u, v], aParam: (p) => [p[0], p[1]], periodico: [false, false] },
+    triple: { vars: ['x', 'y', 'z'], trans: 'x=x,\\; y=y,\\; z=z', jac: '1', jacF: () => 1,
+              aCart: (u, v, w) => [u, v, w], aParam: (p) => [p[0], p[1], p[2]],
+              periodico: [false, false, false] }
+  },
+  polares: {
+    doble: { vars: ['theta', 'r'], etiq: ['\\theta', 'r'],
+             trans: 'x=r\\cos\\theta,\\; y=r\\sin\\theta', jac: 'r',
+             jacF: (t, r) => r, aCart: (t, r) => [r * Math.cos(t), r * Math.sin(t)],
+             aParam: (p) => [Math.atan2(p[1], p[0]), Math.hypot(p[0], p[1])],
+             periodico: [true, false] }
+  },
+  cilindricas: {
+    triple: { vars: ['theta', 'r', 'z'], etiq: ['\\theta', 'r', 'z'],
+              trans: 'x=r\\cos\\theta,\\; y=r\\sin\\theta,\\; z=z', jac: 'r',
+              jacF: (t, r) => r, aCart: (t, r, z) => [r * Math.cos(t), r * Math.sin(t), z],
+              aParam: (p) => [Math.atan2(p[1], p[0]), Math.hypot(p[0], p[1]), p[2]],
+              periodico: [true, false, false] }
+  },
+  esfericas: {
+    triple: { vars: ['theta', 'phi', 'rho'], etiq: ['\\theta', '\\varphi', '\\rho'],
+              trans: 'x=\\rho\\sin\\varphi\\cos\\theta,\\; y=\\rho\\sin\\varphi\\sin\\theta,\\; z=\\rho\\cos\\varphi',
+              jac: '\\rho^{2}\\sin\\varphi',
+              jacF: (t, p, r) => r * r * Math.sin(p),
+              aCart: (t, p, r) => [r * Math.sin(p) * Math.cos(t), r * Math.sin(p) * Math.sin(t), r * Math.cos(p)],
+              aParam: (p) => {
+                const n = Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+                if (n < 1e-12) return [0, 0, 0];
+                return [Math.atan2(p[1], p[0]), Math.acos(Math.max(-1, Math.min(1, p[2] / n))), n];
+              },
+              periodico: [true, false, false] }
+  }
+};
+
+/* ══════════════════ utilidades ══════════════════ */
+function el(id) { return document.getElementById(id); }
+
+function aviso(id, clase, html) {
+  const n = el(id);
+  n.className = 'msg ' + clase;
+  n.innerHTML = html;
+}
+function limpiarAviso(id) { el(id).className = 'msg'; el(id).innerHTML = ''; }
+
+function compilar(expr, nombre) {
+  if (expr === null || expr === undefined || !String(expr).trim())
+    throw new Error('Falta ' + nombre + '.');
+  let c;
+  try { c = math.compile(String(expr)); } catch (e) {
+    throw new Error('No pude leer ' + nombre + ': ' + e.message);
+  }
+  return c;
+}
+
+function evaluar(compilado, scope) {
+  let v;
+  try { v = compilado.evaluate(scope); } catch (e) { return NaN; }
+  if (typeof v === 'boolean') return v;
+  if (typeof v !== 'number' || !isFinite(v)) return NaN;
+  return v;
+}
+
+function numero(texto, nombre) {
+  if (!String(texto || '').trim()) throw new Error('Falta ' + nombre + '.');
+  const v = evaluar(compilar(texto, nombre), {});
+  if (typeof v !== 'number' || !isFinite(v)) throw new Error(nombre + ' no es un número válido.');
+  return v;
+}
+
+function decimales(texto) {
+  const t = String(texto).trim().replace(',', '.');
+  if (!/^-?\d+(\.\d+)?$/.test(t)) return null;
+  const p = t.split('.');
+  return p.length === 2 ? p[1].length : 0;
+}
+
+/* acepta solo la precisión que el estudiante declara */
+function coincide(texto, correcto) {
+  let a;
+  try { a = numero(texto, 'el valor'); } catch (e) { return false; }
+  const d = decimales(texto), dif = Math.abs(a - correcto);
+  if (d === null) return dif <= Math.max(1e-6, Math.abs(correcto) * 1e-6);
+  return dif <= 0.5 * Math.pow(10, -d) && dif <= Math.max(0.006, Math.abs(correcto) * 0.01);
+}
+
+function fmt(v) {
+  if (!isFinite(v)) return '—';
+  if (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0)) return v.toExponential(4);
+  return v.toFixed(4).replace(/\.?0+$/, '');
+}
+
+/* ══════════════════ región ══════════════════ */
+function leerRegion(txt, vars) {
+  const partes = String(txt).split(',').map(s => s.trim()).filter(s => s.length);
+  if (!partes.length) throw new Error('Escriba al menos una desigualdad para la región.');
+  const reg = [];
+  for (const p of partes) {
+    if (!/[<>]=?/.test(p))
+      throw new Error('«' + p + '» no es una desigualdad. Use <= o >=, por ejemplo x^2+y^2 <= 25.');
+    const c = compilar(p, 'la región');
+    const prueba = {}; vars.forEach(v => { prueba[v] = 0.1; });
+    const r = evaluar(c, prueba);
+    if (typeof r !== 'boolean')
+      throw new Error('«' + p + '» no se evalúa como una desigualdad.');
+    reg.push({ txt: p, c: c });
+  }
+  return reg;
+}
+
+function dentro(reg, scope) {
+  for (const d of reg) if (evaluar(d.c, scope) !== true) return false;
+  return true;
+}
+
+function puntoScope(vars, p) {
+  const s = {};
+  vars.forEach((v, i) => { s[v] = p[i]; });
+  return s;
+}
+
+/* busca una caja que contenga la región, duplicando el tamaño hasta que deje de crecer */
+function buscarCaja(reg, vars) {
+  const n = vars.length;
+  let L = 1, mejor = null;
+  for (let it = 0; it < 9; it++) {
+    const lim = [];
+    for (let k = 0; k < n; k++) lim.push([Infinity, -Infinity]);
+    let hay = 0;
+    const m = n === 2 ? 70 : 26;
+    const idx = new Array(n).fill(0);
+    const total = Math.pow(m, n);
+    for (let c = 0; c < total; c++) {
+      let t = c;
+      const p = [];
+      for (let k = 0; k < n; k++) { const i = t % m; t = (t - i) / m; p.push(-L + 2 * L * i / (m - 1)); }
+      if (dentro(reg, puntoScope(vars, p))) {
+        hay++;
+        for (let k = 0; k < n; k++) {
+          if (p[k] < lim[k][0]) lim[k][0] = p[k];
+          if (p[k] > lim[k][1]) lim[k][1] = p[k];
+        }
+      }
+    }
+    if (hay > 0) {
+      const toca = lim.some(a => a[0] <= -L * 0.999 || a[1] >= L * 0.999);
+      mejor = lim;
+      if (!toca) break;
+    }
+    L *= 2;
+  }
+  if (!mejor) throw new Error('No encontré ningún punto dentro de esa región. Revise las desigualdades.');
+  return mejor.map(a => {
+    const h = (a[1] - a[0]) * 0.08 + 1e-6;
+    return [a[0] - h, a[1] + h];
+  });
+}
+
+/* muestreo de puntos interiores, para dibujar y para comparar regiones */
+function muestrear(reg, vars, caja, cuantos) {
+  const n = vars.length, pts = [];
+  let intentos = 0;
+  while (pts.length < cuantos && intentos < cuantos * 80) {
+    intentos++;
+    const p = [];
+    for (let k = 0; k < n; k++) p.push(caja[k][0] + Math.random() * (caja[k][1] - caja[k][0]));
+    if (dentro(reg, puntoScope(vars, p))) pts.push(p);
+  }
+  return pts;
+}
+
+/* ══════════════════ cuadratura de Simpson anidada ══════════════════ */
+function simpson(fn, a, b, n) {
+  if (n % 2) n++;
+  const h = (b - a) / n;
+  let s = 0;
+  for (let i = 0; i <= n; i++) {
+    const w = (i === 0 || i === n) ? 1 : (i % 2 ? 4 : 2);
+    s += w * fn(a + i * h);
+  }
+  return s * h / 3;
+}
+
+/* integra g(u1..un) sobre los límites anidados; lim[k] = {a: fn(previas), b: fn(previas)} */
+function integrarAnidado(g, lim, n) {
+  const d = lim.length;
+  function nivel(k, prev) {
+    const a = lim[k].a(prev), b = lim[k].b(prev);
+    if (!isFinite(a) || !isFinite(b)) return NaN;
+    if (k === d - 1) return simpson(u => g(prev.concat([u])), a, b, n);
+    return simpson(u => nivel(k + 1, prev.concat([u])), a, b, k === 0 ? n : n);
+  }
+  return nivel(0, []);
+}
+
+/* ══════════════════ módulo 1 ══════════════════ */
+function representar() {
+  limpiarAviso('m1'); limpiarAviso('m1b');
+  el('p1').classList.remove('visible');
+  try {
+    T.tipo = el('tipo').value;
+    const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+
+    T.fStr = el('funcion').value.trim();
+    const fc = compilar(T.fStr, 'la función');
+    const prueba = {}; vars.forEach(v => { prueba[v] = 0.37; });
+    if (typeof evaluar(fc, prueba) !== 'number')
+      throw new Error('La función no devuelve un número. Revise que use ' + vars.join(', ') + '.');
+    T.f = fc;
+
+    T.regStr = el('region').value.trim();
+    T.reg = leerRegion(T.regStr, vars);
+    T.caja = buscarCaja(T.reg, vars);
+
+    const pts = muestrear(T.reg, vars, T.caja, T.tipo === 'doble' ? 4000 : 6500);
+    if (pts.length < 50)
+      throw new Error('La región resultó demasiado pequeña o vacía. Revise las desigualdades.');
+
+    dibujarRegion(pts, vars, 'g1');
+
+    let html = '<h3>Región identificada</h3>';
+    html += '<div class="dato"><b>Función:</b> \\(f=' + aTex(T.fStr) + '\\)</div>';
+    html += '<div class="dato"><b>Región:</b> ' + T.reg.map(d => '\\(' + aTex(d.txt) + '\\)').join(', ') + '</div>';
+    html += '<div class="dato"><b>Variables:</b> ' + vars.join(', ') + '</div>';
+    html += '<div class="dato"><b>Extensión en cada eje:</b><br>';
+    vars.forEach((v, k) => {
+      html += '&nbsp;&nbsp;' + v + ' ∈ [' + fmt(T.caja[k][0]) + ', ' + fmt(T.caja[k][1]) + ']<br>';
+    });
+    html += '</div>';
+    html += '<div class="dato" style="color:var(--suave);font-size:.84rem;margin-top:.6rem">' +
+            'La extensión es la caja que encierra la región, no sus límites de integración. ' +
+            'Esos los escribe usted en el módulo 2.</div>';
+    el('f1').innerHTML = html;
+
+    el('p1').classList.add('visible');
+    aviso('m1', 'ok', 'Región representada. Descríbala en el ítem II y luego indique abajo qué sistema de coordenadas cree que conviene.');
+    tipografiar();
+    guardar(true);
+  } catch (e) {
+    aviso('m1', 'mal', e.message);
+  }
+}
+
+function aTex(s) {
+  return String(s)
+    .replace(/\*/g, ' \\cdot ')
+    .replace(/<=/g, ' \\le ').replace(/>=/g, ' \\ge ')
+    .replace(/\^(\w+)/g, '^{$1}')
+    .replace(/sqrt\(/g, '\\sqrt{(').replace(/\bpi\b/g, '\\pi')
+    .replace(/ \\cdot \\pi/g, '\\pi')
+    .replace(/theta/g, '\\theta').replace(/phi/g, '\\varphi').replace(/rho/g, '\\rho');
+}
+
+function dibujarRegion(pts, vars, destino) {
+  const comun = {
+    margin: { l: 50, r: 20, t: 40, b: 45 },
+    paper_bgcolor: '#fff', plot_bgcolor: '#fff',
+    font: { family: 'Segoe UI, Arial', size: 11 },
+    title: { text: 'Región en coordenadas cartesianas', font: { size: 13, color: '#003366' } }
+  };
+  if (vars.length === 2) {
+    const anchoX = T.caja[0][1] - T.caja[0][0], anchoY = T.caja[1][1] - T.caja[1][0];
+    Plotly.newPlot(destino, [{
+      x: pts.map(p => p[0]), y: pts.map(p => p[1]),
+      mode: 'markers', type: 'scattergl',
+      marker: { size: 3, color: '#00b3a4', opacity: .55 }, hoverinfo: 'skip', name: 'R'
+    }], Object.assign({}, comun, {
+      xaxis: { title: 'x', zeroline: true, gridcolor: '#eef1f6', range: T.caja[0] },
+      yaxis: { title: 'y', zeroline: true, gridcolor: '#eef1f6', range: T.caja[1],
+               scaleanchor: 'x', scaleratio: 1 }
+    }), { displayModeBar: false, responsive: true });
+  } else {
+    Plotly.newPlot(destino, [{
+      x: pts.map(p => p[0]), y: pts.map(p => p[1]), z: pts.map(p => p[2]),
+      mode: 'markers', type: 'scatter3d',
+      marker: { size: 1.7, color: '#00b3a4', opacity: .42 }, hoverinfo: 'skip', name: 'R'
+    }], Object.assign({}, comun, {
+      scene: {
+        xaxis: { title: 'x', range: T.caja[0] },
+        yaxis: { title: 'y', range: T.caja[1] },
+        zaxis: { title: 'z', range: T.caja[2] },
+        aspectmode: 'data'
+      }
+    }), { displayModeBar: false, responsive: true });
+  }
+}
+
+/* contraste de la lectura geométrica del ítem II */
+function contrastarGeometria() {
+  limpiarAviso('m1b');
+  const elegido = el('sugerido').value;
+  if (!elegido) { aviso('m1b', 'mal', 'Elija primero un sistema de coordenadas.'); return; }
+  if (!T.reg.length) { aviso('m1b', 'mal', 'Represente primero la región.'); return; }
+
+  const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+  const compat = (T.tipo === 'doble')
+    ? ['cartesianas', 'polares'] : ['cartesianas', 'cilindricas', 'esfericas'];
+  if (compat.indexOf(elegido) < 0) {
+    aviso('m1b', 'mal', 'Ese sistema no corresponde a una integral <b>' + T.tipo +
+      '</b>. Para una integral ' + T.tipo + ' las opciones son: ' + compat.join(', ') + '.');
+    return;
+  }
+
+  const r = rasgosRegion(vars);
+  const notas = [];
+  if (r.simetriaEjeZ) notas.push('la región tiene simetría de revolución alrededor del eje \\(z\\)');
+  if (r.simetriaRadial) notas.push('la distancia al origen determina la pertenencia a la región');
+  if (r.esCaja) notas.push('los límites de cada variable son constantes e independientes entre sí');
+
+  let clase, texto;
+  const bueno =
+    (elegido === 'cartesianas' && r.esCaja) ||
+    (elegido === 'polares' && r.simetriaRadial) ||
+    (elegido === 'cilindricas' && r.simetriaEjeZ && !r.simetriaRadial) ||
+    (elegido === 'esfericas' && r.simetriaRadial);
+
+  if (bueno) {
+    clase = 'ok';
+    texto = '<b>Su lectura es consistente con la geometría.</b>';
+  } else {
+    clase = 'info';
+    texto = '<b>Su elección es posible, pero la geometría apunta en otra dirección.</b> ' +
+            'Vuelva a mirar el dibujo antes de decidir: lo que observo es que ' +
+            (notas.length ? notas.join(', y ') : 'la región no presenta simetrías evidentes') + '.';
+  }
+  if (bueno && notas.length)
+    texto += ' En el dibujo se observa que ' + notas.join(', y ') + '.';
+  texto += '<br><span style="color:var(--suave)">Esto es una observación sobre la forma de la región, ' +
+           'no una calificación: la justificación escrita del ítem II es suya.</span>';
+  aviso('m1b', clase, texto);
+  tipografiar();
+  guardar(true);
+}
+
+/* mide simetrías muestreando la región */
+function rasgosRegion(vars) {
+  const n = vars.length;
+  const pts = muestrear(T.reg, vars, T.caja, 1200);
+  if (!pts.length) return { esCaja: false, simetriaRadial: false, simetriaEjeZ: false };
+
+  let giroZ = 0, radial = 0, caja = 0;
+  for (const p of pts) {
+    // giro alrededor del eje z: (x,y) -> (-y,x)
+    const q = n === 2 ? [-p[1], p[0]] : [-p[1], p[0], p[2]];
+    if (dentro(T.reg, puntoScope(vars, q))) giroZ++;
+    // reflexión que intercambia z con x (solo tiene sentido en 3D): mide simetría esférica
+    if (n === 3) {
+      const s = [p[2], p[1], p[0]];
+      if (dentro(T.reg, puntoScope(vars, s))) radial++;
+    } else {
+      radial = giroZ;
+    }
+    // caja: cada coordenada puede moverse libremente dentro de su rango
+    const c = p.slice();
+    let ok = true;
+    for (let k = 0; k < n && ok; k++) {
+      const alt = c.slice();
+      alt[k] = T.caja[k][0] + 0.90 * (T.caja[k][1] - T.caja[k][0]);
+      const alt2 = c.slice();
+      alt2[k] = T.caja[k][0] + 0.10 * (T.caja[k][1] - T.caja[k][0]);
+      if (!dentro(T.reg, puntoScope(vars, alt)) || !dentro(T.reg, puntoScope(vars, alt2))) ok = false;
+    }
+    if (ok) caja++;
+  }
+  const m = pts.length;
+  return {
+    esCaja: caja / m > 0.9,
+    simetriaRadial: radial / m > 0.95 && giroZ / m > 0.95,
+    simetriaEjeZ: giroZ / m > 0.95
+  };
+}
+
+/* ══════════════════ módulo 2 ══════════════════ */
+function camposLimites() {
+  const s = el('sistema').value;
+  const cont = el('limites');
+  T.sistema = s;
+  if (!s) { cont.innerHTML = ''; return; }
+  const def = SISTEMAS[s] && SISTEMAS[s][T.tipo];
+  if (!def) {
+    cont.innerHTML = '<div class="msg info" style="display:block">Ese sistema no corresponde a una integral <b>' +
+      T.tipo + '</b>. Cambie el tipo de integral en el módulo 1 o elija otro sistema.</div>';
+    return;
+  }
+  const etiq = def.etiq || def.vars;
+  let h = '<div class="rejilla">';
+  def.vars.forEach((v, k) => {
+    const previas = def.vars.slice(0, k);
+    const nota = k === 0 ? 'exterior — debe ser constante'
+                         : 'puede depender de ' + previas.join(', ');
+    h += '<div style="grid-column: 1 / -1"><label>Límites de \\(' + etiq[k] + '\\) ' +
+         '<span class="pista">— ' + nota + '</span></label>' +
+         '<div style="display:flex;gap:.5rem;align-items:center">' +
+         '<span style="font-size:.85rem;color:var(--suave)">desde</span>' +
+         '<input type="text" id="la' + k + '" placeholder="0">' +
+         '<span style="font-size:.85rem;color:var(--suave)">hasta</span>' +
+         '<input type="text" id="lb' + k + '" placeholder="' + (k === 0 ? '2*pi' : '3') + '">' +
+         '</div></div>';
+  });
+  h += '</div>';
+  cont.innerHTML = h;
+  tipografiar();
+}
+
+function armarLimites(def) {
+  const lim = [];
+  def.vars.forEach((v, k) => {
+    const previas = def.vars.slice(0, k);
+    const ca = compilar(el('la' + k).value, 'el límite inferior de ' + v);
+    const cb = compilar(el('lb' + k).value, 'el límite superior de ' + v);
+    const hacer = (c) => (prev) => {
+      const sc = {};
+      previas.forEach((p, i) => { sc[p] = prev[i]; });
+      const r = evaluar(c, sc);
+      return typeof r === 'number' ? r : NaN;
+    };
+    lim.push({ a: hacer(ca), b: hacer(cb), ta: el('la' + k).value.trim(), tb: el('lb' + k).value.trim() });
+  });
+  return lim;
+}
+
+function comprobarLimites() {
+  limpiarAviso('m2');
+  el('p2').classList.remove('visible');
+  T.verificado = false;
+  try {
+    if (!T.reg.length) throw new Error('Primero represente la región en el módulo 1.');
+    const s = el('sistema').value;
+    if (!s) throw new Error('Elija un sistema de coordenadas.');
+    const def = SISTEMAS[s] && SISTEMAS[s][T.tipo];
+    if (!def) throw new Error('Ese sistema no corresponde a una integral ' + T.tipo + '.');
+
+    T.sistema = s;
+    const lim = armarLimites(def);
+    T.lim = lim;
+
+    const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+    const n = def.vars.length;
+
+    /* dirección 1: todo lo que generan los límites debe caer dentro de la región */
+    let fuera = 0, total = 0;
+    const generados = [];
+    for (let i = 0; i < 4000; i++) {
+      const u = [];
+      let ok = true;
+      for (let k = 0; k < n; k++) {
+        const a = lim[k].a(u), b = lim[k].b(u);
+        if (!isFinite(a) || !isFinite(b)) { ok = false; break; }
+        u.push(a + Math.random() * (b - a));
+      }
+      if (!ok) continue;
+      const p = def.aCart.apply(null, u);
+      if (p.some(c => !isFinite(c))) continue;
+      total++;
+      generados.push(p);
+      if (!dentro(T.reg, puntoScope(vars, p))) fuera++;
+    }
+    if (!total) throw new Error('No pude evaluar sus límites. Revise que las expresiones sean válidas.');
+    const pFuera = fuera / total;
+
+    /* dirección 2: todo punto de la región debe caer dentro de los límites, invirtiendo la
+       transformación. Es una comprobación exacta, no estadística. */
+    const muestra = muestrear(T.reg, vars, T.caja, 1200);
+    let sinCubrir = 0;
+    for (const p of muestra) {
+      const u = def.aParam(p);
+      const acum = [];
+      let ok = true;
+      for (let k = 0; k < n && ok; k++) {
+        const a = lim[k].a(acum), b = lim[k].b(acum);
+        if (!isFinite(a) || !isFinite(b)) { ok = false; break; }
+        const w = enRango(u[k], a, b, def.periodico && def.periodico[k]);
+        if (w === null) ok = false; else acum.push(w);
+      }
+      if (!ok) sinCubrir++;
+    }
+    const pSin = muestra.length ? sinCubrir / muestra.length : 1;
+
+    const problemas = [];
+    if (pFuera > 0.02)
+      problemas.push('Sus límites generan puntos <b>fuera</b> de la región: ' +
+        (pFuera * 100).toFixed(0) + ' % de los puntos que producen no cumplen las desigualdades. ' +
+        'Revise los límites superiores.');
+    if (pSin > 0.05)
+      problemas.push('Sus límites <b>no cubren</b> toda la región: ' +
+        (pSin * 100).toFixed(0) + ' % de la región queda por fuera. Revise los rangos.');
+
+    if (problemas.length) {
+      aviso('m2', 'mal', '<b>Los límites todavía no describen la región del módulo 1.</b><ul><li>' +
+        problemas.join('</li><li>') + '</li></ul>');
+      return;
+    }
+
+    /* valores de referencia, que NO se muestran */
+    const gF = (u) => {
+      const p = def.aCart.apply(null, u);
+      const sc = puntoScope(vars, p);
+      const v = evaluar(T.f, sc);
+      const j = def.jacF.apply(null, u);
+      return (typeof v === 'number' && isFinite(v) ? v : 0) * j;
+    };
+    const gV = (u) => def.jacF.apply(null, u);
+    T.integral = integrarAnidado(gF, lim, 40);
+    T.vol = integrarAnidado(gV, lim, 40);
+    T.verificado = true;
+
+    el('f2').innerHTML = fichaPlanteamiento(def, lim);
+    el('p2').classList.add('visible');
+    aviso('m2', 'ok', '<b>Sus límites describen la misma región.</b> Abajo tiene la transformación, el ' +
+      'jacobiano y la integral planteada: cópiela en el ítem III <b>sin resolverla</b>. ' +
+      'El módulo 3 ya puede comprobar su resultado.');
+    tipografiar();
+    guardar(true);
+  } catch (e) {
+    aviso('m2', 'mal', e.message);
+  }
+}
+
+/* ¿está v dentro del intervalo [a,b]? Para variables angulares prueba también v ± 2kπ.
+   Devuelve el valor aceptado, que es el que usan los límites interiores. */
+function enRango(v, a, b, periodico) {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  const tol = 1e-7 * Math.max(1, Math.abs(hi - lo));
+  const cabe = (w) => w >= lo - tol && w <= hi + tol;
+  if (cabe(v)) return v;
+  if (periodico) {
+    const ks = [1, -1, 2, -2];
+    for (let i = 0; i < ks.length; i++) {
+      const w = v + ks[i] * 2 * Math.PI;
+      if (cabe(w)) return w;
+    }
+  }
+  return null;
+}
+
+function fichaPlanteamiento(def, lim) {
+  const etiq = def.etiq || def.vars;
+  let h = '<h3>Cambio de coordenadas</h3>';
+  h += '<div class="dato"><b>Transformación:</b> \\(' + def.trans + '\\)</div>';
+  h += '<div class="dato"><b>Jacobiano:</b> \\(|J| = ' + def.jac + '\\)</div>';
+  const dif0 = def.vars.slice().reverse().map(v => 'd' + etiq[def.vars.indexOf(v)]).join('\\,');
+  h += '<div class="dato"><b>Elemento diferencial:</b> \\(' +
+       (def.jac === '1' ? '' : def.jac + '\\,') + dif0 + '\\)</div>';
+
+  let ints = '';
+  def.vars.forEach((v, k) => {
+    ints += '\\int_{' + aTex(lim[k].ta) + '}^{' + aTex(lim[k].tb) + '}';
+  });
+  const fEnNuevas = def.vars.length && T.sistema !== 'cartesianas'
+    ? 'f\\big(' + def.trans.split(',\\;').map(s => s.split('=')[1]).join(',\\,') + '\\big)'
+    : 'f';
+  const difs = def.vars.slice().reverse().map(v => 'd' + (etiq[def.vars.indexOf(v)])).join('\\,');
+
+  h += '<h3 style="margin-top:.8rem">Integral planteada, sin resolver</h3>';
+  h += '<div class="dato" style="overflow-x:auto">\\[' + ints + fEnNuevas +
+       '\\;' + (def.jac === '1' ? '' : def.jac + '\\,') + difs + '\\]</div>';
+  h += '<div class="dato" style="color:var(--suave);font-size:.84rem">' +
+       'Reemplace \\(f\\) por su función ya escrita en las variables nuevas. El simulador no la ' +
+       'resuelve: ese es el trabajo de la actividad 3.</div>';
+  return h;
+}
+
+/* ══════════════════ módulo 3 ══════════════════ */
+function comprobarResultados() {
+  limpiarAviso('m3');
+  if (!T.verificado) {
+    aviso('m3', 'mal', 'Primero compruebe los límites en el módulo 2: sin ellos no puedo contrastar su resultado.');
+    return;
+  }
+  const tInt = el('vInt').value, tVol = el('vVol').value, tMed = el('vMed').value;
+  if (!tInt.trim() && !tVol.trim() && !tMed.trim()) {
+    aviso('m3', 'mal', 'Escriba al menos uno de los tres resultados.');
+    return;
+  }
+  const medio = T.integral / T.vol;
+  const filas = [];
+  const juzgar = (txt, correcto, nombre) => {
+    if (!String(txt).trim()) return { nombre: nombre, estado: 'vacio' };
+    return { nombre: nombre, estado: coincide(txt, correcto) ? 'bien' : 'mal' };
+  };
+  filas.push(juzgar(tInt, T.integral, 'el valor de la integral'));
+  filas.push(juzgar(tVol, T.vol, T.tipo === 'doble' ? 'el área de la región' : 'el volumen de la región'));
+  filas.push(juzgar(tMed, medio, 'el valor medio'));
+
+  const bien = filas.filter(f => f.estado === 'bien');
+  const mal = filas.filter(f => f.estado === 'mal');
+
+  let h = '';
+  if (bien.length) h += '<b>Correcto:</b> ' + bien.map(f => f.nombre).join(', ') + '.';
+  if (mal.length) {
+    h += (h ? '<br>' : '') + '<b>Todavía no coincide:</b> ' + mal.map(f => f.nombre).join(', ') + '.';
+    h += '<ul>';
+    if (mal.some(f => f.nombre.indexOf('integral') >= 0))
+      h += '<li>Revise si incluyó el jacobiano y si integró en el orden que indican sus límites.</li>';
+    if (mal.some(f => f.nombre.indexOf('región') >= 0))
+      h += '<li>Recuerde que el volumen de la región es la misma integral con la función sustituida por 1.</li>';
+    if (mal.some(f => f.nombre.indexOf('medio') >= 0))
+      h += '<li>El valor medio es el cociente entre la integral y el volumen de la región, no la integral sola.</li>';
+    h += '</ul>';
+  }
+
+  /* coherencia interna entre los tres valores que escribió */
+  try {
+    const a = numero(tInt, 'i'), b = numero(tVol, 'v'), c = numero(tMed, 'm');
+    if (Math.abs(a / b - c) > Math.max(0.02, Math.abs(c) * 0.02))
+      h += '<br><b>Además:</b> sus tres valores no son coherentes entre sí: ' +
+           'el cociente de su integral entre su volumen no da su valor medio.';
+  } catch (e) { /* alguno quedó vacío */ }
+
+  h += '<br><span style="color:var(--suave);font-size:.85rem">No le muestro los valores correctos: ' +
+       'el procedimiento de la actividad 3 es suyo. Si algo no coincide, revise el paso a paso.</span>';
+
+  aviso('m3', mal.length ? 'mal' : 'ok', h);
+  guardar(true);
+}
+
+/* ══════════════════ módulo 4 ══════════════════ */
+function contraste() {
+  limpiarAviso('m4');
+  el('p4').classList.remove('visible');
+  if (!T.verificado) {
+    aviso('m4', 'mal', 'Compruebe primero los límites en el módulo 2.');
+    return;
+  }
+  const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+  const def = SISTEMAS[T.sistema][T.tipo];
+  const etiq = def.etiq || def.vars;
+
+  const pts = muestrear(T.reg, vars, T.caja, T.tipo === 'doble' ? 3500 : 2500);
+  dibujarRegion(pts, vars, 'g4a');
+
+  /* después: los puntos en el espacio de parámetros, que forman una caja o un prisma */
+  const U = [];
+  for (let i = 0; i < 3000; i++) {
+    const u = [];
+    let ok = true;
+    for (let k = 0; k < def.vars.length; k++) {
+      const a = T.lim[k].a(u), b = T.lim[k].b(u);
+      if (!isFinite(a) || !isFinite(b)) { ok = false; break; }
+      u.push(a + Math.random() * (b - a));
+    }
+    if (ok) U.push(u);
+  }
+  const comun = {
+    margin: { l: 50, r: 20, t: 40, b: 45 }, paper_bgcolor: '#fff', plot_bgcolor: '#fff',
+    font: { family: 'Segoe UI, Arial', size: 11 },
+    title: { text: 'Límites en ' + T.sistema, font: { size: 13, color: '#e8630a' } }
+  };
+  const ejes = etiq.map(e => e.replace(/\\var|\\/g, ''));
+  if (def.vars.length === 2) {
+    Plotly.newPlot('g4b', [{
+      x: U.map(u => u[0]), y: U.map(u => u[1]), mode: 'markers', type: 'scattergl',
+      marker: { size: 3, color: '#e8630a', opacity: .5 }, hoverinfo: 'skip'
+    }], Object.assign({}, comun, {
+      xaxis: { title: ejes[0], gridcolor: '#eef1f6' },
+      yaxis: { title: ejes[1], gridcolor: '#eef1f6' }
+    }), { displayModeBar: false, responsive: true });
+  } else {
+    Plotly.newPlot('g4b', [{
+      x: U.map(u => u[0]), y: U.map(u => u[1]), z: U.map(u => u[2]),
+      mode: 'markers', type: 'scatter3d',
+      marker: { size: 1.8, color: '#e8630a', opacity: .45 }, hoverinfo: 'skip'
+    }], Object.assign({}, comun, {
+      scene: { xaxis: { title: ejes[0] }, yaxis: { title: ejes[1] }, zaxis: { title: ejes[2] },
+               aspectmode: 'cube' }
+    }), { displayModeBar: false, responsive: true });
+  }
+
+  let h = '<h3>Qué muestra el contraste</h3>';
+  h += '<div class="dato">A la izquierda, la región tal como es en el espacio físico, en ' +
+       'coordenadas cartesianas. A la derecha, la misma región vista en el espacio de los ' +
+       'parámetros \\(' + etiq.join(',\\; ') + '\\): ahí los límites son los que usted escribió.</div>';
+  h += '<div class="dato">Ese es el sentido del cambio de coordenadas: una región curva en ' +
+       'cartesianas se convierte en una región de límites sencillos, al precio de introducir el ' +
+       'jacobiano \\(' + def.jac + '\\) en el integrando.</div>';
+  el('f4').innerHTML = h;
+
+  el('p4').classList.add('visible');
+  aviso('m4', 'ok', 'Contraste generado. Esta es la captura que sustenta la validación visual de la actividad 4.');
+  tipografiar();
+}
+
+/* ══════════════════ persistencia ══════════════════ */
+const CLAVE = 'simulador-integracion-fase3';
+const CAMPOS = ['tipo', 'funcion', 'region', 'sugerido', 'sistema', 'vInt', 'vVol', 'vMed'];
+
+function recolectar() {
+  const d = {};
+  CAMPOS.forEach(c => { const n = el(c); if (n) d[c] = n.value; });
+  d.lim = [];
+  for (let k = 0; k < 3; k++) {
+    const a = el('la' + k), b = el('lb' + k);
+    if (a && b) d.lim.push([a.value, b.value]);
+  }
+  return d;
+}
+
+function aplicar(d) {
+  CAMPOS.forEach(c => { const n = el(c); if (n && d[c] !== undefined) n.value = d[c]; });
+  T.tipo = el('tipo').value;
+  camposLimites();
+  if (d.lim) d.lim.forEach((p, k) => {
+    const a = el('la' + k), b = el('lb' + k);
+    if (a && b) { a.value = p[0]; b.value = p[1]; }
+  });
+}
+
+function guardar(silencioso) {
+  try {
+    localStorage.setItem(CLAVE, JSON.stringify(recolectar()));
+    el('estado').textContent = 'Avance guardado ' + new Date().toLocaleTimeString('es-CO');
+  } catch (e) {
+    if (!silencioso) alert('No pude guardar en este navegador. Use el código de traslado.');
+  }
+}
+
+function restaurar() {
+  try {
+    const t = localStorage.getItem(CLAVE);
+    if (t) { aplicar(JSON.parse(t)); el('estado').textContent = 'Avance anterior recuperado'; }
+  } catch (e) { /* nada */ }
+}
+
+function codigo() {
+  try {
+    const s = btoa(unescape(encodeURIComponent(JSON.stringify(recolectar()))));
+    navigator.clipboard.writeText(s).then(
+      () => alert('Código copiado al portapapeles. Péguelo en el otro equipo con «Cargar desde código».'),
+      () => prompt('Copie este código y guárdelo:', s));
+  } catch (e) { alert('No pude generar el código.'); }
+}
+
+function cargarCodigo() {
+  const s = prompt('Pegue aquí el código de traslado:');
+  if (!s) return;
+  try {
+    aplicar(JSON.parse(decodeURIComponent(escape(atob(s.trim())))));
+    el('estado').textContent = 'Avance cargado desde código';
+  } catch (e) { alert('Ese código no es válido.'); }
+}
+
+function limpiarTodo() {
+  if (!confirm('Esto borra todo lo que ha escrito en el simulador. ¿Continuar?')) return;
+  try { localStorage.removeItem(CLAVE); } catch (e) { /* nada */ }
+  location.reload();
+}
+
+/* ══════════════════ arranque ══════════════════ */
+function tipografiar() {
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(() => {});
+}
+
+el('tipo').addEventListener('change', () => { T.tipo = el('tipo').value; camposLimites(); });
+el('sistema').addEventListener('change', camposLimites);
+el('b1').addEventListener('click', representar);
+el('b1b').addEventListener('click', contrastarGeometria);
+el('b2').addEventListener('click', comprobarLimites);
+el('b3').addEventListener('click', comprobarResultados);
+el('b4').addEventListener('click', contraste);
+el('bGuardar').addEventListener('click', () => guardar(false));
+el('bCodigo').addEventListener('click', codigo);
+el('bCargar').addEventListener('click', cargarCodigo);
+el('bLimpiar').addEventListener('click', limpiarTodo);
+CAMPOS.forEach(c => { const n = el(c); if (n) n.addEventListener('change', () => guardar(true)); });
+
+restaurar();
+tipografiar();
+</script>
+</body>
+</html>

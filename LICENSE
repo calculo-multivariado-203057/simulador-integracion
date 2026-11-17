@@ -1,0 +1,31 @@
+Simulador de integración múltiple
+Copyright (c) 2026 Pablo Emilio Gutiérrez Duncan
+Universidad Nacional Abierta y a Distancia (UNAD) — ECBTI, CCAV Puerto Colombia
+
+Esta obra está licenciada bajo la licencia
+Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional
+(CC BY-NC-SA 4.0).
+
+Usted es libre de:
+  - Compartir: copiar y redistribuir el material en cualquier medio o formato.
+  - Adaptar: remezclar, transformar y construir a partir del material.
+
+Bajo los siguientes términos:
+  - Atribución: debe dar crédito de manera adecuada, brindar un enlace a la
+    licencia e indicar si se han realizado cambios.
+  - NoComercial: no puede hacer uso del material con propósitos comerciales.
+  - CompartirIgual: si remezcla, transforma o crea a partir del material, debe
+    distribuir su contribución bajo la misma licencia del original.
+
+Resumen de la licencia:
+  https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es
+Texto legal completo:
+  https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.es
+
+----------------------------------------------------------------------------
+Las bibliotecas incluidas en vendor/ no están cubiertas por esta
+licencia y conservan la suya, que se distribuye junto a cada archivo:
+
+  mathjs 12.4.2 ............... Apache License 2.0
+  Plotly.js 2.32.0 ............ MIT License
+  MathJax 3.2.2 (salida SVG) .. Apache License 2.0

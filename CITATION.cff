@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "Si utiliza este recurso, por favor cítelo como se indica a continuación."
+title: "Simulador de integración múltiple"
+abstract: >-
+  Recurso educativo digital para la Fase 3 del curso Cálculo Multivariado (203057)
+  de la Universidad Nacional Abierta y a Distancia. El estudiante escribe la función,
+  la región, el sistema de coordenadas y los límites de integración, y el simulador
+  representa la región, muestra la transformación y el jacobiano, comprueba que los
+  límites describan la región y contrasta el valor de la integral, el volumen y el
+  valor medio que el estudiante calculó a mano. No resuelve la integral.
+type: software
+version: "1.0.0"
+date-released: "2026-11-17"
+license: CC-BY-NC-SA-4.0
+repository-code: "https://github.com/calculo-multivariado-203057/simulador-integracion"
+url: "https://calculo-multivariado-203057.github.io/simulador-integracion/"
+languages:
+  - spa
+keywords:
+  - cálculo multivariado
+  - integración múltiple
+  - cambio de coordenadas
+  - jacobiano
+  - coordenadas polares cilíndricas y esféricas
+  - recurso educativo digital
+  - educación a distancia
+authors:
+  - family-names: "Gutiérrez Duncan"
+    given-names: "Pablo Emilio"
+    affiliation: >-
+      Universidad Nacional Abierta y a Distancia (UNAD), Escuela de Ciencias
+      Básicas, Tecnología e Ingeniería (ECBTI), CCAV Puerto Colombia, Zona Caribe
+    city: "Barranquilla"
+    country: CO
+    email: "pablo.gutierrez@unad.edu.co"
+    orcid: "https://orcid.org/0009-0001-6596-8536"
