@@ -616,7 +616,7 @@ function dibujarRegion(pts, vars, destino) {
       xaxis: { title: 'x', zeroline: true, gridcolor: '#eef1f6', range: T.caja[0] },
       yaxis: { title: 'y', zeroline: true, gridcolor: '#eef1f6', range: T.caja[1],
                scaleanchor: 'x', scaleratio: 1 }
-    }), { displayModeBar: false, responsive: true });
+    }), { responsive: true, displaylogo: false });
   } else {
     Plotly.newPlot(destino, [{
       x: pts.map(p => p[0]), y: pts.map(p => p[1]), z: pts.map(p => p[2]),
@@ -629,7 +629,7 @@ function dibujarRegion(pts, vars, destino) {
         zaxis: { title: 'z', range: T.caja[2] },
         aspectmode: 'data'
       }
-    }), { displayModeBar: false, responsive: true });
+    }), { responsive: true, displaylogo: false });
   }
 }
 
@@ -1002,7 +1002,7 @@ function contraste() {
     }], Object.assign({}, comun, {
       xaxis: { title: ejes[0], gridcolor: '#eef1f6' },
       yaxis: { title: ejes[1], gridcolor: '#eef1f6' }
-    }), { displayModeBar: false, responsive: true });
+    }), { responsive: true, displaylogo: false });
   } else {
     Plotly.newPlot('g4b', [{
       x: U.map(u => u[0]), y: U.map(u => u[1]), z: U.map(u => u[2]),
@@ -1011,7 +1011,7 @@ function contraste() {
     }], Object.assign({}, comun, {
       scene: { xaxis: { title: ejes[0] }, yaxis: { title: ejes[1] }, zaxis: { title: ejes[2] },
                aspectmode: 'cube' }
-    }), { displayModeBar: false, responsive: true });
+    }), { responsive: true, displaylogo: false });
   }
 
   let h = '<h3>Qué muestra el contraste</h3>';
