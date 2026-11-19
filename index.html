@@ -237,6 +237,19 @@
 
     <div class="panel" id="p2">
       <div class="ficha" id="f2"></div>
+      <div class="ficha" id="barridoCaja" style="margin-top:.8rem">
+        <h3>Barrido — vea cómo sus límites recorren la región</h3>
+        <p style="font-size:.86rem;color:var(--suave);margin-bottom:.5rem">
+          Mueva el deslizador: la variable exterior avanza desde su límite inferior hasta el
+          superior y se va pintando la parte de la región que sus límites ya cubrieron. Eso es
+          lo que significa integrar de forma iterada.</p>
+        <div style="display:flex;gap:.6rem;align-items:center">
+          <button id="bPlay" class="sec" style="margin-top:0;white-space:nowrap">Reproducir</button>
+          <input type="range" id="barrido" min="0" max="1" step="0.004" value="1" style="width:100%">
+        </div>
+        <div id="barridoTexto" style="font-size:.88rem;color:var(--texto);margin-top:.5rem"></div>
+        <div class="grafico" id="gBarrido" style="height:380px;margin-top:.6rem"></div>
+      </div>
     </div>
 
     <details class="ayuda">
@@ -854,6 +867,8 @@ function comprobarLimites() {
 
     el('f2').innerHTML = fichaPlanteamiento(def, lim);
     el('p2').classList.add('visible');
+    el('barrido').value = 1;
+    dibujarBarrido(1);
     aviso('m2', 'ok', '<b>Sus límites describen la misma región.</b> Abajo tiene la transformación, el ' +
       'jacobiano y la integral planteada: cópiela en el ítem III <b>sin resolverla</b>. ' +
       'El módulo 3 ya puede comprobar su resultado.');
@@ -906,6 +921,105 @@ function fichaPlanteamiento(def, lim) {
        'Reemplace \\(f\\) por su función ya escrita en las variables nuevas. El simulador no la ' +
        'resuelve: ese es el trabajo de la actividad 3.</div>';
   return h;
+}
+
+/* ══════════════════ barrido interactivo ══════════════════ */
+/* Recorre la variable exterior y pinta lo que los límites van cubriendo. */
+let animando = null;
+
+function puntosBarrido(frac) {
+  const def = SISTEMAS[T.sistema][T.tipo];
+  const n = def.vars.length;
+  const dentro = [], fuera = [];
+  for (let i = 0; i < 2600; i++) {
+    const u = [];
+    let ok = true;
+    for (let k = 0; k < n; k++) {
+      const a = T.lim[k].a(u), b = T.lim[k].b(u);
+      if (!isFinite(a) || !isFinite(b)) { ok = false; break; }
+      const t = (k === 0) ? Math.random() * frac : Math.random();
+      u.push(a + t * (b - a));
+    }
+    if (!ok) continue;
+    const p = def.aCart.apply(null, u);
+    if (p.some(c => !isFinite(c))) continue;
+    const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+    (dentro.length + fuera.length < 2600)
+      && (dentro_region(p, vars) ? dentro : fuera).push(p);
+  }
+  return { dentro, fuera };
+}
+
+function dentro_region(p, vars) {
+  return dentro(T.reg, puntoScope(vars, p));
+}
+
+function dibujarBarrido(frac) {
+  if (!T.verificado || !T.lim) return;
+  const vars = T.tipo === 'doble' ? ['x', 'y'] : ['x', 'y', 'z'];
+  const base = muestrear(T.reg, vars, T.caja, T.tipo === 'doble' ? 2600 : 2200);
+  const b = puntosBarrido(frac);
+  const def = SISTEMAS[T.sistema][T.tipo];
+  const etiq = def.etiq || def.vars;
+  const nom = etiq[0].replace(/\\var|\\/g, '');
+
+  const comun = {
+    margin: { l: 46, r: 16, t: 34, b: 40 }, paper_bgcolor: '#fff', plot_bgcolor: '#fff',
+    font: { family: 'Segoe UI, Arial', size: 11 }, showlegend: true,
+    legend: { orientation: 'h', y: -0.14, font: { size: 10 } },
+    title: { text: 'Barrido de ' + nom + ' — ' + Math.round(frac * 100) + ' %',
+             font: { size: 13, color: '#003366' } }
+  };
+  const t1 = { name: 'región', mode: 'markers', hoverinfo: 'skip',
+    marker: { size: vars.length === 2 ? 3 : 1.6, color: '#cfd8e3', opacity: .55 } };
+  const t2 = { name: 'cubierto por sus límites', mode: 'markers', hoverinfo: 'skip',
+    marker: { size: vars.length === 2 ? 3.4 : 1.9, color: '#00b3a4', opacity: .75 } };
+  const t3 = { name: 'fuera de la región', mode: 'markers', hoverinfo: 'skip',
+    marker: { size: vars.length === 2 ? 3.4 : 1.9, color: '#d62728', opacity: .8 } };
+
+  if (vars.length === 2) {
+    [t1, t2, t3].forEach(t => { t.type = 'scattergl'; });
+    t1.x = base.map(p => p[0]); t1.y = base.map(p => p[1]);
+    t2.x = b.dentro.map(p => p[0]); t2.y = b.dentro.map(p => p[1]);
+    t3.x = b.fuera.map(p => p[0]); t3.y = b.fuera.map(p => p[1]);
+    Plotly.react('gBarrido', [t1, t2, t3], Object.assign({}, comun, {
+      xaxis: { title: 'x', range: T.caja[0], gridcolor: '#eef1f6' },
+      yaxis: { title: 'y', range: T.caja[1], gridcolor: '#eef1f6', scaleanchor: 'x', scaleratio: 1 }
+    }), { responsive: true, displaylogo: false });
+  } else {
+    [t1, t2, t3].forEach(t => { t.type = 'scatter3d'; });
+    t1.x = base.map(p => p[0]); t1.y = base.map(p => p[1]); t1.z = base.map(p => p[2]);
+    t2.x = b.dentro.map(p => p[0]); t2.y = b.dentro.map(p => p[1]); t2.z = b.dentro.map(p => p[2]);
+    t3.x = b.fuera.map(p => p[0]); t3.y = b.fuera.map(p => p[1]); t3.z = b.fuera.map(p => p[2]);
+    Plotly.react('gBarrido', [t1, t2, t3], Object.assign({}, comun, {
+      scene: { xaxis: { title: 'x', range: T.caja[0] }, yaxis: { title: 'y', range: T.caja[1] },
+               zaxis: { title: 'z', range: T.caja[2] }, aspectmode: 'data' }
+    }), { responsive: true, displaylogo: false });
+  }
+
+  const total = b.dentro.length + b.fuera.length;
+  const pFuera = total ? b.fuera.length / total : 0;
+  el('barridoTexto').innerHTML =
+    '<b>' + nom + '</b> recorrido al <b>' + Math.round(frac * 100) + ' %</b> de su rango.'
+    + (b.fuera.length
+        ? ' <span style="color:var(--error)">El ' + Math.round(pFuera * 100) + ' % de lo que '
+          + 'generan sus límites cae fuera de la región (puntos rojos).</span>'
+        : ' Todo lo que generan sus límites cae dentro de la región.')
+    + '<br><span style="color:var(--suave);font-size:.85rem">Gris: la región completa. '
+    + 'Turquesa: lo que sus límites ya cubrieron.</span>';
+}
+
+function reproducirBarrido() {
+  if (animando) { clearInterval(animando); animando = null; el('bPlay').textContent = 'Reproducir'; return; }
+  el('bPlay').textContent = 'Detener';
+  let v = 0;
+  el('barrido').value = 0;
+  animando = setInterval(() => {
+    v += 0.035;
+    if (v >= 1) { v = 1; clearInterval(animando); animando = null; el('bPlay').textContent = 'Reproducir'; }
+    el('barrido').value = v;
+    dibujarBarrido(v);
+  }, 110);
 }
 
 /* ══════════════════ módulo 3 ══════════════════ */
@@ -1105,6 +1219,8 @@ el('b1b').addEventListener('click', contrastarGeometria);
 el('b2').addEventListener('click', comprobarLimites);
 el('b3').addEventListener('click', comprobarResultados);
 el('b4').addEventListener('click', contraste);
+el('barrido').addEventListener('input', e => dibujarBarrido(parseFloat(e.target.value)));
+el('bPlay').addEventListener('click', reproducirBarrido);
 el('bGuardar').addEventListener('click', () => guardar(false));
 el('bCodigo').addEventListener('click', codigo);
 el('bCargar').addEventListener('click', cargarCodigo);
