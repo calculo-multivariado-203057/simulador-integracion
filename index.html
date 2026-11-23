@@ -140,7 +140,7 @@
 
 <!-- ───────────────────────── MÓDULO 1 ───────────────────────── -->
 <section class="modulo" id="mod1">
-  <h2><span class="num">1</span> Región de integración <small>Actividad 1 · ítems I y II</small></h2>
+  <h2><span class="num">1</span> Región de integración <small>Actividad 1 · numerales I y II</small></h2>
   <div class="cuerpo">
     <p class="intro">
       Tome del Apéndice 3 la función y la región de su problema y escríbalas abajo. El simulador
@@ -179,7 +179,7 @@
       <div class="rejilla" style="margin-top:.9rem">
         <div>
           <label for="sugerido">Según la geometría, el sistema que conviene es
-            <span class="pista">— su respuesta del ítem II</span></label>
+            <span class="pista">— su respuesta del numeral II</span></label>
           <select id="sugerido">
             <option value="">Elija…</option>
             <option value="cartesianas">Cartesianas</option>
@@ -217,7 +217,7 @@
 
 <!-- ───────────────────────── MÓDULO 2 ───────────────────────── -->
 <section class="modulo" id="mod2">
-  <h2><span class="num">2</span> Cambio de coordenadas y límites <small>Actividad 2 · ítems I, II y III</small></h2>
+  <h2><span class="num">2</span> Cambio de coordenadas y límites <small>Actividad 2 · numerales I, II y III</small></h2>
   <div class="cuerpo">
     <p class="intro">
       Elija el sistema de coordenadas y escriba los límites de integración en ese sistema. El
@@ -273,7 +273,7 @@
         <p style="margin-top:.6rem">El simulador responde con la transformación
           \(x=r\cos\theta,\ y=r\sin\theta\), el jacobiano \(r\) y la integral planteada
           \(\displaystyle\int_{0}^{2\pi}\!\!\int_{0}^{3}(9-r^{2})\,r\,dr\,d\theta\), que es lo que
-          usted debe copiar en el ítem III <b>sin resolverla</b>.</p>
+          usted debe copiar en el numeral III <b>sin resolverla</b>.</p>
         <p style="margin-top:.6rem">El límite interior puede depender del exterior. Si la región
           fuera el triángulo \(0\le x\le 2,\ 0\le y\le x\), en cartesianas se escribiría
           \(x\) de <code>0</code> a <code>2</code> y \(y\) de <code>0</code> a <code>x</code>.</p>
@@ -284,7 +284,7 @@
 
 <!-- ───────────────────────── MÓDULO 3 ───────────────────────── -->
 <section class="modulo" id="mod3">
-  <h2><span class="num">3</span> Comprobación del resultado <small>Actividad 3 · ítems I y III</small></h2>
+  <h2><span class="num">3</span> Comprobación del resultado <small>Actividad 3 · numerales I y III</small></h2>
   <div class="cuerpo">
     <p class="intro">
       Resuelva la integral a mano, dejando visible cada integración parcial, y calcule también el
@@ -602,7 +602,7 @@ function representar() {
     el('f1').innerHTML = html;
 
     el('p1').classList.add('visible');
-    aviso('m1', 'ok', 'Región representada. Descríbala en el ítem II y luego indique abajo qué sistema de coordenadas cree que conviene.');
+    aviso('m1', 'ok', 'Región representada. Descríbala en el numeral II y luego indique abajo qué sistema de coordenadas cree que conviene.');
     tipografiar();
     guardar(true);
   } catch (e) {
@@ -654,7 +654,7 @@ function dibujarRegion(pts, vars, destino) {
   }
 }
 
-/* contraste de la lectura geométrica del ítem II */
+/* contraste de la lectura geométrica del numeral II */
 function contrastarGeometria() {
   limpiarAviso('m1b');
   const elegido = el('sugerido').value;
@@ -695,7 +695,7 @@ function contrastarGeometria() {
   if (bueno && notas.length)
     texto += ' En el dibujo se observa que ' + notas.join(', y ') + '.';
   texto += '<br><span style="color:var(--suave)">Esto es una observación sobre la forma de la región, ' +
-           'no una calificación: la justificación escrita del ítem II es suya.</span>';
+           'no una calificación: la justificación escrita del numeral II es suya.</span>';
   aviso('m1b', clase, texto);
   tipografiar();
   guardar(true);
@@ -878,7 +878,7 @@ function comprobarLimites() {
     el('barrido').value = 1;
     dibujarBarrido(1);
     aviso('m2', 'ok', '<b>Sus límites describen la misma región.</b> Abajo tiene la transformación, el ' +
-      'jacobiano y la integral planteada: cópiela en el ítem III <b>sin resolverla</b>. ' +
+      'jacobiano y la integral planteada: cópiela en el numeral III <b>sin resolverla</b>. ' +
       'El módulo 3 ya puede comprobar su resultado.');
     tipografiar();
     guardar(true);
