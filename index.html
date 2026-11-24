@@ -453,6 +453,47 @@ function coincide(texto, correcto) {
   return dif <= 0.5 * Math.pow(10, -d) && dif <= Math.max(0.006, Math.abs(correcto) * 0.01);
 }
 
+/* ═════════ diagnóstico del error numérico ═════════ */
+/* Nombra el error a partir de la razón entre lo escrito y lo correcto, sin
+   revelar nunca el valor correcto. Devuelve null si no reconoce el patrón. */
+function diagnostico(texto, correcto) {
+  let a;
+  try { a = numero(texto, 'el valor'); } catch (_) { return null; }
+  if (!isFinite(a) || !isFinite(correcto) || Math.abs(correcto) < 1e-12 || Math.abs(a) < 1e-12)
+    return null;
+  const r = a / correcto;
+  const cerca = (v, w) => Math.abs(v - w) <= 0.02 * Math.abs(w);
+  const TAU = 2 * Math.PI;
+
+  if (cerca(r, -1))
+    return 'Su valor tiene <b>la magnitud correcta pero el signo opuesto</b>. ' +
+           'Casi siempre es la orientación: el sentido del recorrido o la dirección de la normal.';
+  if (cerca(r, 0.5))
+    return 'Su valor es <b>exactamente la mitad</b> del que da el simulador. ' +
+           'Revise si tomó la mitad de una región, un triángulo donde iba un paralelogramo, ' +
+           'o si le faltó una de las dos partes del dominio.';
+  if (cerca(r, 2))
+    return 'Su valor es <b>exactamente el doble</b>. Revise si contó dos veces alguna parte ' +
+           'del dominio, o si duplicó un intervalo que ya estaba completo.';
+  if (cerca(r, 1 / TAU))
+    return 'A su valor le falta <b>un factor \\( 2\\pi \\)</b>. Es el que aparece al integrar ' +
+           'el ángulo sobre una vuelta completa: revise si lo dejó fuera de la integral.';
+  if (cerca(r, TAU))
+    return 'Su valor tiene <b>un factor \\( 2\\pi \\) de más</b>. Revise si multiplicó por la ' +
+           'vuelta completa un resultado que ya la incluía.';
+  if (cerca(r, 1 / Math.PI))
+    return 'A su valor le falta <b>un factor \\( \\pi \\)</b>.';
+  if (cerca(r, Math.PI))
+    return 'Su valor tiene <b>un factor \\( \\pi \\) de más</b>.';
+  if (cerca(r, 1 / 6) || cerca(r, 6))
+    return 'La razón entre su valor y el del simulador es <b>6</b>. Ese factor suele separar ' +
+           'el tetraedro del paralelepípedo que forman los mismos vectores.';
+  if (cerca(r, 1 / 3) || cerca(r, 3))
+    return 'La razón entre su valor y el del simulador es <b>3</b>. Revise el exponente o el ' +
+           'coeficiente de la antiderivada.';
+  return null;
+}
+
 function fmt(v) {
   if (!isFinite(v)) return '—';
   if (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0)) return v.toExponential(4);
@@ -1052,6 +1093,21 @@ function comprobarResultados() {
   filas.push(juzgar(tVol, T.vol, T.tipo === 'doble' ? 'el área de la región' : 'el volumen de la región'));
   filas.push(juzgar(tMed, medio, 'el valor medio'));
 
+  /* pistas dirigidas: el patrón del error y la confusión entre las tres cantidades */
+  const pistas = [];
+  const cruce = [[tInt, T.integral, 'la integral'], [tVol, T.vol, 'la región'],
+                 [tMed, medio, 'el valor medio']];
+  cruce.forEach(function (c, i) {
+    if (!String(c[0]).trim() || coincide(c[0], c[1])) return;
+    const d = diagnostico(c[0], c[1]);
+    if (d) pistas.push('En ' + c[2] + ': ' + d);
+    cruce.forEach(function (o, j) {
+      if (i !== j && coincide(c[0], o[1]))
+        pistas.push('En ' + c[2] + ' escribió el valor que corresponde a ' + o[2] +
+                    ': revise cuál de las tres cantidades le piden en cada casilla.');
+    });
+  });
+
   const bien = filas.filter(f => f.estado === 'bien');
   const mal = filas.filter(f => f.estado === 'mal');
 
@@ -1060,6 +1116,7 @@ function comprobarResultados() {
   if (mal.length) {
     h += (h ? '<br>' : '') + '<b>Todavía no coincide:</b> ' + mal.map(f => f.nombre).join(', ') + '.';
     h += '<ul>';
+    pistas.forEach(function (p) { h += '<li>' + p + '</li>'; });
     if (mal.some(f => f.nombre.indexOf('integral') >= 0))
       h += '<li>Revise si incluyó el jacobiano y si integró en el orden que indican sus límites.</li>';
     if (mal.some(f => f.nombre.indexOf('región') >= 0))
